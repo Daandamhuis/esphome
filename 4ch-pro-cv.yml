@@ -10,6 +10,13 @@ esphome:
   board: esp01_1m
   includes:
     - 4chpro-fan.h
+  on_boot:
+    priority: -10
+    then:
+      - fan.turn_on:
+          id: sf4chProMv
+          speed: LOW
+
 
 wifi:
   networks:
