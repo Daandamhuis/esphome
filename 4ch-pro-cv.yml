@@ -1,0 +1,170 @@
+substitutions:
+  devicename: 4ch_relay_mv
+  upper_devicename: Mechanische Ventilatie
+  device_type: Sonoff 4CH Pro
+  firmware_version: v1.0
+
+esphome:
+  name: $devicename
+  platform: ESP8266
+  board: esp01_1m
+  includes:
+    - 4chpro-fan.h
+
+wifi:
+  networks:
+  - ssid: !secret wifi_general
+    password: !secret wifi_password
+  
+# Enable logging
+logger:
+  baud_rate: 0
+
+uart:
+  rx_pin: RX
+  baud_rate: 4800
+
+# Enable Home Assistant API
+api:
+  password: !secret api_password
+
+ota:
+  password: !secret ota_password
+
+text_sensor:
+  - platform: template
+    name: ${upper_devicename} Speed
+    update_interval: 1s
+    lambda: |-
+      if (id(fan_relay1).state) {
+        return {"LOW"};
+      } else if (id(fan_relay2).state) {
+        return {"MEDIUM"};
+      } else if (id(fan_relay3).state) {
+        return {"HIGH"};
+      } else {
+        // Not running
+        return {"OFF"};
+      }
+
+status_led:
+  pin:
+    number: GPIO13
+    inverted: yes
+
+binary_sensor:
+  - platform: status
+    name: ${upper_devicename} Status
+  - platform: template
+    name: ${upper_devicename} Running
+    lambda: |-
+      if (id(fan_relay1).state || id(fan_relay2).state || id(fan_relay3).state) {
+        // Running
+        return true;
+      } else {
+        // Not running
+        return false;
+      }
+  - platform: gpio
+    id: button1
+    pin:
+      number: GPIO0
+      mode: INPUT_PULLUP
+      inverted: True
+    on_press:
+      then:
+        - switch.toggle: fan_relay1
+        - switch.turn_on: update_fan_speed
+  - platform: gpio
+    id: button2
+    pin:
+      number: GPIO9
+      mode: INPUT_PULLUP
+      inverted: True
+    on_press:
+      then:
+        - switch.toggle: fan_relay2
+        - switch.turn_on: update_fan_speed
+  - platform: gpio
+    id: button3
+    pin:
+      number: GPIO10
+      mode: INPUT_PULLUP
+      inverted: True
+    on_press:
+      then:
+        - switch.toggle: fan_relay3
+        - switch.turn_on: update_fan_speed
+      
+output:
+  - platform: custom
+    type: float
+    outputs:
+      id: fanoutput
+    lambda: |-
+      auto mv_fan = new Sonoff4CHProFan();
+      App.register_component(mv_fan);
+      return {mv_fan};
+
+switch:
+  - platform: gpio
+    id: fan_relay1
+    pin: GPIO12 #D6
+  - platform: gpio
+    id: fan_relay2 
+    pin: GPIO5 #D1
+  - platform: gpio
+    id: fan_relay3
+    pin: GPIO4 #D2
+
+  - platform: template
+    id: update_fan_speed
+    optimistic: True
+    turn_on_action:
+      then:
+        - delay: 200ms
+        - if:
+            condition:
+              and:
+                - switch.is_off: fan_relay1
+                - switch.is_off: fan_relay2
+                - switch.is_off: fan_relay3
+            then:
+              - fan.turn_off: sf4chProMv
+        - if:
+            condition:
+              and:
+                - switch.is_on: fan_relay1
+                - switch.is_off: fan_relay2
+                - switch.is_off: fan_relay3
+            then:
+              - fan.turn_on:
+                  id: sf4chProMv
+                  speed: LOW
+        - if:
+            condition:
+              and:
+                - switch.is_off: fan_relay1
+                - switch.is_on: fan_relay2
+                - switch.is_off: fan_relay3
+            then:
+              - fan.turn_on:
+                  id: sf4chProMv
+                  speed: MEDIUM
+        - if:
+            condition:
+              and:
+                - switch.is_off: fan_relay1
+                - switch.is_off: fan_relay2
+                - switch.is_on: fan_relay3
+            then:
+              - fan.turn_on:
+                  id: sf4chProMv
+                  speed: HIGH
+        - switch.turn_off: update_fan_speed
+
+fan:
+  - platform: speed
+    output: fanoutput
+    id: sf4chProMv
+    name: ${upper_devicename}
