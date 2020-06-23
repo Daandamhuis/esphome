@@ -36,15 +36,15 @@ text_sensor:
     name: ${upper_devicename} Speed
     update_interval: 1s
     lambda: |-
-      if (id(fan_relay1).state) {
-        return {"LOW"};
-      } else if (id(fan_relay2).state) {
-        return {"MEDIUM"};
-      } else if (id(fan_relay3).state) {
-        return {"HIGH"};
+      if (id(sf4chProMv).speed < 0.3) {
+        return {"Off"};
+      } else if (id(sf4chProMv).speed < 0.6) {
+        return {"Low"};
+      } else if(id(sf4chProMv).speed < 0.9) {
+        return {"Medium"};
       } else {
         // Not running
-        return {"OFF"};
+        return {"High"};
       }
 
 status_led:
