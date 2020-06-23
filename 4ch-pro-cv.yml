@@ -36,11 +36,11 @@ text_sensor:
     name: ${upper_devicename} Speed
     update_interval: 1s
     lambda: |-
-      if (id(sf4chProMv).speed < 0.3) {
+      if (id(sf4chProMv).state < 0.3) {
         return {"Off"};
-      } else if (id(sf4chProMv).speed < 0.6) {
+      } else if (id(sf4chProMv).state < 0.6) {
         return {"Low"};
-      } else if(id(sf4chProMv).speed < 0.9) {
+      } else if(id(sf4chProMv).state < 0.9) {
         return {"Medium"};
       } else {
         // Not running
