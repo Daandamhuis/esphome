@@ -11,7 +11,7 @@ esphome:
   includes:
     - 4chpro-fan.h
   on_boot:
-    priority: -10
+    priority: 500 # Set fan on before connecting to WiFi
     then:
       - fan.turn_on:
           id: sf4chProMv
